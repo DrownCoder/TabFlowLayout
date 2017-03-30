@@ -1,28 +1,4 @@
 <resources>
-    <!-- 38px -->
-    <style name="Fuxk_38px_TextView" parent="@android:style/Widget.TextView">
-        <item name="android:textSize">@dimen/dd_dimen_38px</item>
-    </style>
-    <!-- 24px -->
-    <style name="Fuxk_24px_TextView" parent="@android:style/Widget.TextView">
-        <item name="android:textSize">@dimen/dd_dimen_24px</item>
-    </style>
-    <!-- 32px -->
-    <style name="Fuxk_32px_TextView" parent="@android:style/Widget.TextView">
-        <item name="android:textSize">@dimen/dd_dimen_32px</item>
-    </style>
-    <!-- Base title sub -->
-    <style name="Fuxk_Base_Title_Sub_Style" parent="@style/Fuxk_32px_TextView">
-        <item name="android:textColor">@color/fuxk_base_color_black</item>
-    </style>
-    <!-- Base Tip black -->
-    <style name="Fuxk_Base_Tip_Black_Style" parent="@style/Fuxk_24px_TextView">
-        <item name="android:textColor">@color/fuxk_base_color_black</item>
-    </style>
-    <!-- Base Title -->
-    <style name="Fuxk_Base_Title_Style" parent="@style/Fuxk_38px_TextView">
-        <item name="android:textColor">@color/fuxk_base_color_black_2</item>
-    </style>
     <!-- Base application theme. -->
     <style name="AppTheme" parent="Theme.AppCompat.Light.DarkActionBar">
         <!-- Customize your theme here. -->
@@ -36,17 +12,7 @@
         <item name="android:layout_margin">4dp</item>
         <item name="android:background">@drawable/flag_01</item>
         <item name="android:textColor">#43BBE7</item>
+        <item name="android:gravity">center</item>
     </style>
-    <!--自定义标题栏-->
-    <declare-styleable name="CommonTitleBar">
-        <attr name="CenterType">
-            <enum name="Text" value="0" />
-            <enum name="Search" value="1" />
-        </attr>
-        <attr name="leftBtnIcon" format="reference" />
-        <attr name="leftBtnTxt" format="string|reference" />
-        <attr name="rightBtnTxt" format="string|reference" />
-        <attr name="rightBtnIcon" format="reference" />
-        <attr name="titlecolor" format="color"/>
-    </declare-styleable></resources>
+ </resources>
 

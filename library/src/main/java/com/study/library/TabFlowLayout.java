@@ -1,4 +1,4 @@
-package com.study.tabflowlayout.view;
+package com.study.library;
 
 import android.content.Context;
 import android.util.AttributeSet;
@@ -8,8 +8,6 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.view.animation.Animation;
 import android.view.animation.AnimationUtils;
-
-import com.study.tabflowlayout.R;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -38,7 +36,7 @@ public class TabFlowLayout extends ViewGroup {
             @Override
             public boolean onLongClick(View v) {
                 Animation animation = AnimationUtils.loadAnimation(mContext, R.anim.tab_shake);
-                for(int i = 0;i<getChildCount();i++){
+                for (int i = 0; i < getChildCount(); i++) {
                     getChildAt(i).startAnimation(animation);
                 }
                 return true;
@@ -47,7 +45,7 @@ public class TabFlowLayout extends ViewGroup {
         setOnClickListener(new OnClickListener() {
             @Override
             public void onClick(View v) {
-                for(int i = 0;i<getChildCount();i++){
+                for (int i = 0; i < getChildCount(); i++) {
                     getChildAt(i).clearAnimation();
                 }
             }
@@ -60,64 +58,109 @@ public class TabFlowLayout extends ViewGroup {
         float y = event.getY();
         float beginx = 0;
         float beginy = 0;
-        switch (event.getAction()){
+        viewindex oldView = null;//触摸的view
+        viewindex resultview;//落点viwe
+        switch (event.getAction()) {
             case MotionEvent.ACTION_DOWN:
                 beginx = x;
                 beginy = y;
-                mChildTouchView = findChild(beginx,beginy);
+                oldView = findChildIndex(beginx, beginy);
+                if (oldView != null) {
+                    mChildTouchView = findChild(oldView);
+                    mChildTouchView.clearAnimation();
+                    mChildTouchView.bringToFront();
+                }
                 break;
             case MotionEvent.ACTION_MOVE:
                 if (mChildTouchView != null) {
-                    moveTouchView(x,y);
+                    moveTouchView(x, y);
+
+                    resultview = findChildIndex(x, y);
+                    if (compare(resultview, oldView) != 0) {
+                        beginAnimation(compare(oldView, resultview) < 0 ? oldView : resultview
+                                , compare(oldView, resultview) < 0 ? resultview : oldView
+                                , compare(oldView, resultview) < 0 ? true : false);
+                    }
                 }
+
+
                 break;
         }
         return super.onTouchEvent(event);
     }
 
+    private void beginAnimation(viewindex oldindex, viewindex newindex, boolean b) {
+        viewindex start = b ? nextView(oldindex) : oldindex;
+        viewindex end = b ? nextView(newindex) : newindex;
+        for(int i = start.x;i<=end.x;i++){
+            for(int j = 0;j<mAllViews.get(i).size();j++){
+
+            }
+        }
+    }
+
     /**
      * 移动触摸的View
+     *
      * @param x
      * @param y
      */
     private void moveTouchView(float x, float y) {
-        mChildTouchView.layout((int)x,(int)y
-                ,(int)(x+mChildTouchView.getWidth())
-                ,(int)(y+mChildTouchView.getHeight()));
+        int left = (int) (x - mChildTouchView.getWidth() / 2);
+        int top = (int) (y - mChildTouchView.getHeight() / 2);
+        mChildTouchView.layout(left, top
+                , (left + mChildTouchView.getWidth())
+                , (top + mChildTouchView.getHeight()));
         mChildTouchView.invalidate();
     }
 
     /**
-     * 根据触摸的坐标点确定触摸的View
+     * 根据触摸的坐标点确定触摸的View的坐标
+     *
      * @param x
      * @param y
      * @return
      */
-    private View findChild(float x, float y) {
+    private viewindex findChildIndex(float x, float y) {
         int row = 0;
         int column = 0;
         int height = 0;
         int width = 0;
-        for(int i =0;i<mLineHeight.size();i++){
+        for (int i = 0; i < mLineHeight.size(); i++) {
             height += mLineHeight.get(i);
-            Log.e("y",y+"");
-            Log.e("height",height+"");
-            if(y<height){
+            Log.e("y", y + "");
+            Log.e("height", height + "");
+            if (y < height) {
                 row = i;
                 break;
             }
         }
+        if (y > height) return null;
         List<View> lineView = mAllViews.get(row);
-        for(int i = 0;i<lineView.size();i++){
+        for (int i = 0; i < lineView.size(); i++) {
             View child = lineView.get(i);
             MarginLayoutParams lp = (MarginLayoutParams) child.getLayoutParams();
             width += child.getWidth() + lp.leftMargin + lp.rightMargin;
-            if(x < width){
+            if (x < width) {
                 column = i;
                 break;
             }
         }
-        return mAllViews.get(row).get(column);
+        return new viewindex(row, column);
+    }
+
+    private View findChild(viewindex index) {
+        return mAllViews.get(index.x).get(index.y);
+    }
+
+    private viewindex nextView(viewindex index) {
+        if (index.y + 1 >= mAllViews.get(index.x).size()) {
+            index.x++;
+            index.y = 0;
+        } else {
+            index.y++;
+        }
+        return index;
     }
 
     @Override
@@ -201,10 +244,10 @@ public class TabFlowLayout extends ViewGroup {
         int left = 0;
         int top = 0;
         int linenum = mAllViews.size();
-        for(int i = 0;i<linenum;i++){
+        for (int i = 0; i < linenum; i++) {
             lineViews = mAllViews.get(i);
             lineHeight = mLineHeight.get(i);
-            for(int j = 0;j<lineViews.size();j++){
+            for (int j = 0; j < lineViews.size(); j++) {
                 View child = lineViews.get(j);
                 if (child.getVisibility() == View.GONE) {
                     continue;
@@ -224,5 +267,28 @@ public class TabFlowLayout extends ViewGroup {
             left = 0;
         }
 
+    }
+
+    private class viewindex {
+        int x;
+        int y;
+
+        public viewindex(int row, int column) {
+            x = row;
+            y = column;
+        }
+    }
+
+    public int compare(viewindex o1, viewindex o2) {
+        if (o1.x < o2.x) {
+            return -1;
+        } else if (o1.x == o1.x) {
+            if (o1.y < o2.y) {
+                return -1;
+            } else if (o1.y == o2.y) {
+                return 0;
+            }
+        }
+        return 1;
     }
 }

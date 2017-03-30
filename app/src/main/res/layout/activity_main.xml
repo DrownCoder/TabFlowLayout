@@ -6,19 +6,12 @@
     android:background="#E1E6F6"
     android:layout_width="match_parent"
     android:layout_height="match_parent">
-    <com.study.tabflowlayout.view.CommonTitleBar
-        android:id="@+id/title_layout"
-        android:layout_width="match_parent"
-        android:layout_height="50dp"
-        app:leftBtnIcon="@mipmap/fuxk_back"
-        app:rightBtnTxt="取消"
-        app:CenterType="Search"
-        app:titlecolor="@color/white"
-        />
-    <com.study.tabflowlayout.view.TabFlowLayout
-        android:layout_below="@+id/title_layout"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content">
+
+    <com.study.library.TabMoveLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true"
+        >
 
         <TextView
             style="@style/text_flag_01"
@@ -36,19 +29,5 @@
             style="@style/text_flag_01"
             android:text="恋爱ing" />
 
-        <TextView
-            style="@style/text_flag_01"
-            android:text="挣钱ing" />
-
-        <TextView
-            style="@style/text_flag_01"
-            android:text="努力ing" />
-
-        <TextView
-            style="@style/text_flag_01"
-            android:text="I thick i can" />
-        <TextView
-            style="@style/text_flag_01"
-            android:text="i" />
-    </com.study.tabflowlayout.view.TabFlowLayout>
+    </com.study.library.TabMoveLayout>
 </RelativeLayout>
