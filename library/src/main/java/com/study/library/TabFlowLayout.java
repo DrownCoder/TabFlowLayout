@@ -59,7 +59,7 @@ public class TabFlowLayout extends ViewGroup {
         float beginx = 0;
         float beginy = 0;
         viewindex oldView = null;//触摸的view
-        viewindex resultview;//落点viwe
+        viewindex resultview;//落点view
         switch (event.getAction()) {
             case MotionEvent.ACTION_DOWN:
                 beginx = x;

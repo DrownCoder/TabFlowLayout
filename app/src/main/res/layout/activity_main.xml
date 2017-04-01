@@ -10,6 +10,7 @@
     <com.study.library.TabMoveLayout
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:clickable="true"
         android:layout_alignParentBottom="true"
         >
 
@@ -28,6 +29,9 @@
         <TextView
             style="@style/text_flag_01"
             android:text="恋爱ing" />
+        <TextView
+            style="@style/text_flag_01"
+            android:text="Welcome" />
 
     </com.study.library.TabMoveLayout>
 </RelativeLayout>
