@@ -7,6 +7,7 @@ import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.animation.Animation;
 import android.view.animation.TranslateAnimation;
 
 import java.util.ArrayList;
@@ -25,7 +26,13 @@ public class TabMoveLayout extends ViewGroup {
     private int mDuration = 100;
     //触摸View的index
     private int mTouchIndex = -1;
-    private int mOldIndex = 0;
+    private int mOldIndex = -1;
+
+    private float mBeginX = 0;
+    private float mBeginY = 0;
+
+    //是否处于触摸状态
+    private boolean mOnHover = false;
     /**
      * 标签个数 4
      * |Magin|View|Magin|Magin|View|Magin|Magin|View|Magin|Magin|View|Magin|
@@ -135,7 +142,10 @@ public class TabMoveLayout extends ViewGroup {
         float y = event.getY();
         switch (event.getAction()) {
             case MotionEvent.ACTION_DOWN:
+                mBeginX = x;
+                mBeginY = y;
                 mTouchIndex = findChildIndex(x, y);
+                mOldIndex = mTouchIndex;
                 if (mTouchIndex != -1) {
                     mTouchChildView = getChildAt(mTouchIndex);
                     mTouchChildView.clearAnimation();
@@ -144,20 +154,27 @@ public class TabMoveLayout extends ViewGroup {
 
                 break;
             case MotionEvent.ACTION_MOVE:
-                if (mTouchIndex != -1 && mTouchChildView !=null) {
+                if (mTouchIndex != -1 && mTouchChildView != null) {
                     moveTouchView(x, y);
                     //拖动过程中的View的index
                     int resultIndex = findChildIndex(x, y);
-                    if (resultIndex != mOldIndex || mOldIndex == mTouchIndex) {
+                    if (resultIndex != -1 && (resultIndex != mOldIndex)
+                            && ((Math.abs(x - mBeginX) > mItemScale * 2 * MARGIN_WIDTH)
+                            || (Math.abs(y - mBeginY) > mItemScale * 2 * MARGIN_HEIGHT))
+                            ) {
+                        Log.e("index", "old=" + mOldIndex);
+                        Log.e("index", "result=" + resultIndex);
                         beginAnimation(Math.min(mOldIndex, resultIndex)
                                 , Math.max(mOldIndex, resultIndex)
                                 , mOldIndex < resultIndex);
-                        mOldIndex =resultIndex;
+                        mOldIndex = resultIndex;
+                        mOnHover = true;
                     }
                 }
 
                 break;
             case MotionEvent.ACTION_UP:
+                mOnHover = false;
                 mTouchIndex = -1;
                 mTouchChildView = null;
                 break;
@@ -172,31 +189,68 @@ public class TabMoveLayout extends ViewGroup {
      *                true-拖动的组件在经过的index前
      *                false-拖动的组件在经过的index后
      */
-    private void beginAnimation(int startIndex, int endIndex, boolean forward) {
+    private void beginAnimation(int startIndex, int endIndex, final boolean forward) {
         TranslateAnimation animation;
         List<TranslateAnimation> animList = new ArrayList<>();
         int startI = forward ? startIndex + 1 : startIndex;
         int endI = forward ? endIndex + 1 : endIndex;//for循环用的是<，取不到最后一个
+        if (mOnHover) {//拖动没有释放情况
+            startI = startIndex + 1;
+            endI = endIndex + 1;
+        }
+
+        Log.e("index", "start=" + startI);
+        Log.e("index", "end=" + endI);
         //X轴的单位移动距离
-        float moveX = (ITEM_WIDTH + 2 * MARGIN_WIDTH) * mItemScale;
+        final float moveX = (ITEM_WIDTH + 2 * MARGIN_WIDTH) * mItemScale;
         //y轴的单位移动距离
-        float moveY = (ITEM_HEIGHT + 2 * MARGIN_HEIGHT)*mItemScale;
+        final float moveY = (ITEM_HEIGHT + 2 * MARGIN_HEIGHT) * mItemScale;
         //x轴移动方向
-        int direct = forward ? -1 : 1;
+        final int directX = forward ? -1 : 1;
+        final int directY = forward ? 1 : -1;
+        boolean isMoveY = false;
         for (int i = startI; i < endI; i++) {
-            View child = getChildAt(i);
+            final View child = getChildAt(i);
             child.clearAnimation();
-            if(i%ITEM_NUM == 0 && forward){
+            if (i % ITEM_NUM == 0 && forward &&
+                    mTouchIndex / ITEM_NUM != i / ITEM_NUM) {
                 //y轴需要移动：第一个组件需要上移到上一行最后一个
-                animation = new TranslateAnimation(0, (ITEM_NUM - 1) * moveX, 0, direct * moveY);
-            } else if (i % ITEM_NUM == (ITEM_NUM - 1) && !forward) {
+                isMoveY = true;
+                animation = new TranslateAnimation(0, directY * (ITEM_NUM - 1) * moveX, 0, directX * moveY);
+            } else if (i % ITEM_NUM == (ITEM_NUM - 1) && !forward &&
+                    mTouchIndex / ITEM_NUM != i / ITEM_NUM) {
                 //y轴需要移动：最后一个组件需要下移到下一行第一个
-                animation = new TranslateAnimation(0, -(ITEM_NUM - 1) * moveX, 0, moveY);
-            }else{//y轴不动，仅x轴移动
-                animation = new TranslateAnimation(0, direct * moveX, 0, 0);
+                isMoveY = true;
+                animation = new TranslateAnimation(0, directY * (ITEM_NUM - 1) * moveX, 0, directX * moveY);
+            } else {//y轴不动，仅x轴移动
+                isMoveY = false;
+                animation = new TranslateAnimation(0, directX * moveX, 0, 0);
             }
             animation.setDuration(mDuration);
             animation.setFillAfter(true);
+            final boolean finalIsMoveY = isMoveY;
+            animation.setAnimationListener(new Animation.AnimationListener() {
+                @Override
+                public void onAnimationStart(Animation animation) {
+
+                }
+
+                @Override
+                public void onAnimationEnd(Animation animation) {
+                    child.clearAnimation();
+                    if (finalIsMoveY) {
+                        child.offsetLeftAndRight((int) (directY * (ITEM_NUM - 1) * moveX));
+                        child.offsetTopAndBottom((int) (directX * moveY));
+                    } else {
+                        child.offsetLeftAndRight((int) (directX * moveX));
+                    }
+                }
+
+                @Override
+                public void onAnimationRepeat(Animation animation) {
+
+                }
+            });
             child.setAnimation(animation);
             animList.add(animation);
         }
