@@ -8,6 +8,7 @@ import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.animation.Animation;
+import android.view.animation.AnimationUtils;
 import android.view.animation.TranslateAnimation;
 
 import java.util.ArrayList;
@@ -67,6 +68,24 @@ public class TabMoveLayout extends ViewGroup {
         mContext = context;
         //注意要变成float型，不然int强转会导致误差，导致组件位置偏移
         mItemScale = getScreenWidth(context) * 1.0f / (ITEM_NUM * (ITEM_WIDTH + 2 * MARGIN_WIDTH));
+        setOnLongClickListener(new OnLongClickListener() {
+            @Override
+            public boolean onLongClick(View v) {
+                Animation animation = AnimationUtils.loadAnimation(mContext, R.anim.tab_shake);
+                for (int i = 0; i < getChildCount(); i++) {
+                    getChildAt(i).startAnimation(animation);
+                }
+                return true;
+            }
+        });
+        setOnClickListener(new OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                for (int i = 0; i < getChildCount(); i++) {
+                    getChildAt(i).clearAnimation();
+                }
+            }
+        });
     }
 
     @Override
@@ -212,12 +231,12 @@ public class TabMoveLayout extends ViewGroup {
         for (int i = startI; i < endI; i++) {
             final View child = getChildAt(i);
             child.clearAnimation();
-            if (i % ITEM_NUM == 0 && forward &&
+            if ((i % ITEM_NUM == (ITEM_NUM - 1) ||i % ITEM_NUM == 0 ) && forward &&
                     mTouchIndex / ITEM_NUM != i / ITEM_NUM) {
                 //y轴需要移动：第一个组件需要上移到上一行最后一个
                 isMoveY = true;
                 animation = new TranslateAnimation(0, directY * (ITEM_NUM - 1) * moveX, 0, directX * moveY);
-            } else if (i % ITEM_NUM == (ITEM_NUM - 1) && !forward &&
+            } else if ((i % ITEM_NUM == (ITEM_NUM - 1) ||i % ITEM_NUM == 0 )&& !forward &&
                     mTouchIndex / ITEM_NUM != i / ITEM_NUM) {
                 //y轴需要移动：最后一个组件需要下移到下一行第一个
                 isMoveY = true;
