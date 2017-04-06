@@ -23,8 +23,10 @@ public class TabMoveLayout extends ViewGroup {
     private float mItemScale;
     //触摸的View
     private View mTouchChildView;
+    //触摸的View的所在行
+    private int mLineNum;
     //动画时间
-    private int mDuration = 100;
+    private int mDuration = 3000;
     //触摸View的index
     private int mTouchIndex = -1;
     private int mOldIndex = -1;
@@ -104,6 +106,7 @@ public class TabMoveLayout extends ViewGroup {
             right = (int) (left + ITEM_WIDTH * mItemScale);
             bottom = (int) (top + ITEM_HEIGHT * mItemScale);
             child.layout(left, top, right, bottom);
+            child.setTag(i % ITEM_NUM);
         }
 
     }
@@ -164,6 +167,7 @@ public class TabMoveLayout extends ViewGroup {
                 mBeginX = x;
                 mBeginY = y;
                 mTouchIndex = findChildIndex(x, y);
+                mLineNum = mTouchIndex / ITEM_NUM;
                 mOldIndex = mTouchIndex;
                 if (mTouchIndex != -1) {
                     mTouchChildView = getChildAt(mTouchIndex);
@@ -231,17 +235,12 @@ public class TabMoveLayout extends ViewGroup {
         for (int i = startI; i < endI; i++) {
             final View child = getChildAt(i);
             child.clearAnimation();
-            if ((i % ITEM_NUM == (ITEM_NUM - 1) ||i % ITEM_NUM == 0 ) && forward &&
-                    mTouchIndex / ITEM_NUM != i / ITEM_NUM) {
-                //y轴需要移动：第一个组件需要上移到上一行最后一个
-                isMoveY = true;
-                animation = new TranslateAnimation(0, directY * (ITEM_NUM - 1) * moveX, 0, directX * moveY);
-            } else if ((i % ITEM_NUM == (ITEM_NUM - 1) ||i % ITEM_NUM == 0 )&& !forward &&
-                    mTouchIndex / ITEM_NUM != i / ITEM_NUM) {
-                //y轴需要移动：最后一个组件需要下移到下一行第一个
+            if ((i % ITEM_NUM == (ITEM_NUM - 1) || i % ITEM_NUM == 0)
+                    && (startIndex / ITEM_NUM != endIndex / ITEM_NUM)) {
                 isMoveY = true;
                 animation = new TranslateAnimation(0, directY * (ITEM_NUM - 1) * moveX, 0, directX * moveY);
             } else {//y轴不动，仅x轴移动
+                child.setTag(Integer.valueOf(child.getTag().toString()) + directX);
                 isMoveY = false;
                 animation = new TranslateAnimation(0, directX * moveX, 0, 0);
             }
