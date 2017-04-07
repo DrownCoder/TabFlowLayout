@@ -10,6 +10,7 @@ import android.view.ViewGroup;
 import android.view.animation.Animation;
 import android.view.animation.AnimationUtils;
 import android.view.animation.TranslateAnimation;
+import android.widget.TextView;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -36,6 +37,8 @@ public class TabMoveLayout extends ViewGroup {
 
     //是否处于触摸状态
     private boolean mOnHover = false;
+
+    private List<String> mData;
     /**
      * 标签个数 4
      * |Magin|View|Magin|Magin|View|Magin|Magin|View|Magin|Magin|View|Magin|
@@ -195,6 +198,7 @@ public class TabMoveLayout extends ViewGroup {
 
                 break;
             case MotionEvent.ACTION_UP:
+                setTouchIndex(x, y);
                 mOnHover = false;
                 mTouchIndex = -1;
                 mTouchChildView = null;
@@ -221,7 +225,7 @@ public class TabMoveLayout extends ViewGroup {
                 if (mTouchIndex < endIndex) {
                     startI = startIndex;
                     endI = endIndex + 1;
-                }else {
+                } else {
                     startI = startIndex;
                     endI = endIndex;
                 }
@@ -250,25 +254,21 @@ public class TabMoveLayout extends ViewGroup {
                     && holder.row == i / ITEM_NUM && holder.column == i % ITEM_NUM) {
                 //下移
                 holder.row++;
-                // child.setTag(Integer.valueOf(child.getTag().toString()) + directY);
                 isMoveY = true;
                 animation = new TranslateAnimation(0, directY * (ITEM_NUM - 1) * moveX, 0, directX * moveY);
             } else if (i % ITEM_NUM == 0 && forward
                     && holder.row == i / ITEM_NUM && holder.column == i % ITEM_NUM) {
                 //上移
                 holder.row--;
-                //child.setTag(Integer.valueOf(child.getTag().toString()) + directY);
                 isMoveY = true;
                 animation = new TranslateAnimation(0, directY * (ITEM_NUM - 1) * moveX, 0, directX * moveY);
             } else if (mOnHover && holder.row < i / ITEM_NUM) {
                 //onHover 下移
                 holder.row++;
-                //child.setTag(Integer.valueOf(child.getTag().toString()) + 1);
                 isMoveY = true;
                 animation = new TranslateAnimation(0, -(ITEM_NUM - 1) * moveX, 0, moveY);
             } else if (mOnHover && holder.row > i / ITEM_NUM) {
                 //onHover 上移
-                //child.setTag(Integer.valueOf(child.getTag().toString()) -1);
                 holder.row--;
                 isMoveY = true;
                 animation = new TranslateAnimation(0, (ITEM_NUM - 1) * moveX, 0, -moveY);
@@ -332,6 +332,55 @@ public class TabMoveLayout extends ViewGroup {
             return -1;
         }
         return index;
+    }
+
+    public void setChildView(List<String> data) {
+        setChildView(data, 0);
+    }
+
+    public void setChildView(List<String> data, int styleId) {
+        this.removeAllViews();
+        Log.e("Count", "" + getChildCount());
+        if(data == null || data.size() == 0){
+            return;
+        }
+        mData = data;
+        TextView tv = null;
+        for(int i = 0;i<data.size();i++){
+            tv = new TextView(mContext);
+            tv.setText(data.get(i));
+            tv.setBackgroundResource(R.drawable.flag_01);
+            addView(tv);
+        }
+        this.postInvalidate();
+        Log.e("Count", "" + getChildCount());
+    }
+
+    /**
+     * ---up事件触发
+     * 设置拖动的View的位置
+     * @param x
+     * @param y
+     */
+    private void setTouchIndex(float x,float y){
+        if(mTouchChildView!= null){
+            int resultIndex = findChildIndex(x, y);
+            Log.e("resultindex", "" + resultIndex);
+            if(resultIndex == mTouchIndex){
+                /**
+                 * ------------------------------重要------------------------------
+                 * 移除前需要先移除View的动画效果，不然无法移除，可看源码
+                 */
+                this.removeView(mTouchChildView);
+
+                TextView tv = new TextView(mContext);
+                tv.setText(mData.get(mTouchIndex));
+                tv.setBackgroundResource(R.drawable.flag_01);
+                this.addView(tv,mTouchIndex);
+            }else{
+
+            }
+        }
     }
 
     class ViewHolder {
