@@ -26,7 +26,7 @@ public class TabMoveLayout extends ViewGroup {
     //触摸的View的所在行
     private int mLineNum;
     //动画时间
-    private int mDuration = 3000;
+    private int mDuration = 100;
     //触摸View的index
     private int mTouchIndex = -1;
     private int mOldIndex = -1;
@@ -106,7 +106,7 @@ public class TabMoveLayout extends ViewGroup {
             right = (int) (left + ITEM_WIDTH * mItemScale);
             bottom = (int) (top + ITEM_HEIGHT * mItemScale);
             child.layout(left, top, right, bottom);
-            child.setTag(i % ITEM_NUM);
+            child.setTag(new ViewHolder(i / ITEM_NUM, i % ITEM_NUM));
         }
 
     }
@@ -185,8 +185,6 @@ public class TabMoveLayout extends ViewGroup {
                             && ((Math.abs(x - mBeginX) > mItemScale * 2 * MARGIN_WIDTH)
                             || (Math.abs(y - mBeginY) > mItemScale * 2 * MARGIN_HEIGHT))
                             ) {
-                        Log.e("index", "old=" + mOldIndex);
-                        Log.e("index", "result=" + resultIndex);
                         beginAnimation(Math.min(mOldIndex, resultIndex)
                                 , Math.max(mOldIndex, resultIndex)
                                 , mOldIndex < resultIndex);
@@ -214,16 +212,25 @@ public class TabMoveLayout extends ViewGroup {
      */
     private void beginAnimation(int startIndex, int endIndex, final boolean forward) {
         TranslateAnimation animation;
+        ViewHolder holder;
         List<TranslateAnimation> animList = new ArrayList<>();
         int startI = forward ? startIndex + 1 : startIndex;
         int endI = forward ? endIndex + 1 : endIndex;//for循环用的是<，取不到最后一个
         if (mOnHover) {//拖动没有释放情况
-            startI = startIndex + 1;
-            endI = endIndex + 1;
+            if (mTouchIndex > startIndex) {
+                if (mTouchIndex < endIndex) {
+                    startI = startIndex;
+                    endI = endIndex + 1;
+                }else {
+                    startI = startIndex;
+                    endI = endIndex;
+                }
+            } else {
+                startI = startIndex + 1;
+                endI = endIndex + 1;
+            }
         }
 
-        Log.e("index", "start=" + startI);
-        Log.e("index", "end=" + endI);
         //X轴的单位移动距离
         final float moveX = (ITEM_WIDTH + 2 * MARGIN_WIDTH) * mItemScale;
         //y轴的单位移动距离
@@ -233,14 +240,40 @@ public class TabMoveLayout extends ViewGroup {
         final int directY = forward ? 1 : -1;
         boolean isMoveY = false;
         for (int i = startI; i < endI; i++) {
+            if (i == mTouchIndex) {
+                continue;
+            }
             final View child = getChildAt(i);
+            holder = (ViewHolder) child.getTag();
             child.clearAnimation();
-            if ((i % ITEM_NUM == (ITEM_NUM - 1) || i % ITEM_NUM == 0)
-                    && (startIndex / ITEM_NUM != endIndex / ITEM_NUM)) {
+            if (i % ITEM_NUM == (ITEM_NUM - 1) && !forward
+                    && holder.row == i / ITEM_NUM && holder.column == i % ITEM_NUM) {
+                //下移
+                holder.row++;
+                // child.setTag(Integer.valueOf(child.getTag().toString()) + directY);
                 isMoveY = true;
                 animation = new TranslateAnimation(0, directY * (ITEM_NUM - 1) * moveX, 0, directX * moveY);
+            } else if (i % ITEM_NUM == 0 && forward
+                    && holder.row == i / ITEM_NUM && holder.column == i % ITEM_NUM) {
+                //上移
+                holder.row--;
+                //child.setTag(Integer.valueOf(child.getTag().toString()) + directY);
+                isMoveY = true;
+                animation = new TranslateAnimation(0, directY * (ITEM_NUM - 1) * moveX, 0, directX * moveY);
+            } else if (mOnHover && holder.row < i / ITEM_NUM) {
+                //onHover 下移
+                holder.row++;
+                //child.setTag(Integer.valueOf(child.getTag().toString()) + 1);
+                isMoveY = true;
+                animation = new TranslateAnimation(0, -(ITEM_NUM - 1) * moveX, 0, moveY);
+            } else if (mOnHover && holder.row > i / ITEM_NUM) {
+                //onHover 上移
+                //child.setTag(Integer.valueOf(child.getTag().toString()) -1);
+                holder.row--;
+                isMoveY = true;
+                animation = new TranslateAnimation(0, (ITEM_NUM - 1) * moveX, 0, -moveY);
             } else {//y轴不动，仅x轴移动
-                child.setTag(Integer.valueOf(child.getTag().toString()) + directX);
+                holder.column += directX;
                 isMoveY = false;
                 animation = new TranslateAnimation(0, directX * moveX, 0, 0);
             }
@@ -299,5 +332,15 @@ public class TabMoveLayout extends ViewGroup {
             return -1;
         }
         return index;
+    }
+
+    class ViewHolder {
+        int row;
+        int column;
+
+        public ViewHolder(int row, int column) {
+            this.row = row;
+            this.column = column;
+        }
     }
 }
