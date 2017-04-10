@@ -1,9 +1,12 @@
 package com.study.library;
 
 import android.content.Context;
+import android.content.res.TypedArray;
 import android.util.AttributeSet;
 import android.util.DisplayMetrics;
 import android.util.Log;
+import android.util.TypedValue;
+import android.view.Gravity;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
@@ -16,16 +19,17 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Created by dengzhaoxuan on 2017/3/30.
+ * Created by Xuan on 2017/3/30.
  */
 
 public class TabMoveLayout extends ViewGroup {
     private Context mContext;
+    private Animation mSnake;
+    //是否允许拖动
+    private boolean isMove = false;
     private float mItemScale;
     //触摸的View
     private View mTouchChildView;
-    //触摸的View的所在行
-    private int mLineNum;
     //动画时间
     private int mDuration = 100;
     //触摸View的index
@@ -52,13 +56,25 @@ public class TabMoveLayout extends ViewGroup {
     //一行的标签个数
     private int ITEM_NUM = 4;
     //标签margin-width-比例
-    private int MARGIN_WIDTH = 5;
+    private int MARGIN_WIDTH;
+    private final int MARGIN_WIDTH_DEFAULT = 5;
     //标签width-比例
-    private int ITEM_WIDTH = 26;
+    private int ITEM_WIDTH;
+    private final int ITEM_WIDTH_DEFAULT = 26;
     //标签margin-height-比例
-    private int MARGIN_HEIGHT = 4;
+    private int MARGIN_HEIGHT;
+    private int MARGIN_HEIGHT_DEFAULT = 4;
     //标签height-比例
-    private int ITEM_HEIGHT = 10;
+    private int ITEM_HEIGHT;
+    private int ITEM_HEIGHT_DEFAULT = 10;
+    //标签背景
+    private int ITEM_BACKGROUND;
+    private final int ITEM_BACKGROUD_DEFAULT = R.drawable.flag_01;
+    //文字颜色
+    private int TEXT_COLOR;
+    private final int TEXT_COLOR_DEDAULT = R.color.text_color;
+    //文字大小
+    private int TEXT_SIZE;
 
     public TabMoveLayout(Context context) {
         this(context, null);
@@ -71,14 +87,19 @@ public class TabMoveLayout extends ViewGroup {
     public TabMoveLayout(Context context, AttributeSet attrs, int defStyleAttr) {
         super(context, attrs, defStyleAttr);
         mContext = context;
-        //注意要变成float型，不然int强转会导致误差，导致组件位置偏移
-        mItemScale = getScreenWidth(context) * 1.0f / (ITEM_NUM * (ITEM_WIDTH + 2 * MARGIN_WIDTH));
+        initAttrs(attrs);
+        init();
+        initEvent();
+    }
+
+    private void initEvent() {
         setOnLongClickListener(new OnLongClickListener() {
             @Override
             public boolean onLongClick(View v) {
-                Animation animation = AnimationUtils.loadAnimation(mContext, R.anim.tab_shake);
+                isMove = true;
+                mSnake = AnimationUtils.loadAnimation(mContext, R.anim.tab_shake);
                 for (int i = 0; i < getChildCount(); i++) {
-                    getChildAt(i).startAnimation(animation);
+                    getChildAt(i).startAnimation(mSnake);
                 }
                 return true;
             }
@@ -86,11 +107,30 @@ public class TabMoveLayout extends ViewGroup {
         setOnClickListener(new OnClickListener() {
             @Override
             public void onClick(View v) {
+                isMove = false;
                 for (int i = 0; i < getChildCount(); i++) {
                     getChildAt(i).clearAnimation();
                 }
             }
         });
+    }
+
+    private void init() {
+        //注意要变成float型，不然int强转会导致误差，导致组件位置偏移
+        mItemScale = getScreenWidth(mContext) * 1.0f / (ITEM_NUM * (ITEM_WIDTH + 2 * MARGIN_WIDTH));
+    }
+
+    private void initAttrs(AttributeSet attrs) {
+        TypedArray array = mContext.obtainStyledAttributes(attrs, R.styleable.TabMoveLayout);
+        ITEM_NUM = array.getInt(R.styleable.TabMoveLayout_itemNum, 4);
+        ITEM_WIDTH = array.getInt(R.styleable.TabMoveLayout_itemWidth, 26);
+        ITEM_HEIGHT = array.getInt(R.styleable.TabMoveLayout_itemHeight, 10);
+        MARGIN_WIDTH = array.getInt(R.styleable.TabMoveLayout_widthMargin, 5);
+        MARGIN_HEIGHT = array.getInt(R.styleable.TabMoveLayout_heightMargin, 4);
+        ITEM_BACKGROUND = array.getResourceId(R.styleable.TabMoveLayout_tabBac, R.drawable.flag_01);
+        TEXT_COLOR = array.getColor(R.styleable.TabMoveLayout_textColor, getResources().getColor(TEXT_COLOR_DEDAULT));
+        TEXT_SIZE = (int) DensityUtils.sp2px(mContext,array.getDimensionPixelSize(R.styleable.TabMoveLayout_textSize, 16));
+        array.recycle();
     }
 
     @Override
@@ -101,15 +141,14 @@ public class TabMoveLayout extends ViewGroup {
         int right;
         int bottom;
         for (int i = 0; i < childCount; i++) {
-            int row = i / 4;
-            int column = i % 4;
+            int row = i / ITEM_NUM;
+            int column = i % ITEM_NUM;
             View child = getChildAt(i);
             left = (int) ((MARGIN_WIDTH + column * (ITEM_WIDTH + 2 * MARGIN_WIDTH)) * mItemScale);
             top = (int) ((MARGIN_HEIGHT + row * (ITEM_HEIGHT + 2 * MARGIN_HEIGHT)) * mItemScale);
             right = (int) (left + ITEM_WIDTH * mItemScale);
             bottom = (int) (top + ITEM_HEIGHT * mItemScale);
             child.layout(left, top, right, bottom);
-            child.setTag(new ViewHolder(i / ITEM_NUM, i % ITEM_NUM));
         }
 
     }
@@ -162,47 +201,53 @@ public class TabMoveLayout extends ViewGroup {
     }
 
     @Override
+    public boolean onInterceptTouchEvent(MotionEvent ev) {
+        return mOnHover;
+    }
+
+    @Override
     public boolean onTouchEvent(MotionEvent event) {
         float x = event.getX();
         float y = event.getY();
-        switch (event.getAction()) {
-            case MotionEvent.ACTION_DOWN:
-                mBeginX = x;
-                mBeginY = y;
-                mTouchIndex = findChildIndex(x, y);
-                mLineNum = mTouchIndex / ITEM_NUM;
-                mOldIndex = mTouchIndex;
-                if (mTouchIndex != -1) {
-                    mTouchChildView = getChildAt(mTouchIndex);
-                    mTouchChildView.clearAnimation();
-                    //mTouchChildView.bringToFront();
-                }
-
-                break;
-            case MotionEvent.ACTION_MOVE:
-                if (mTouchIndex != -1 && mTouchChildView != null) {
-                    moveTouchView(x, y);
-                    //拖动过程中的View的index
-                    int resultIndex = findChildIndex(x, y);
-                    if (resultIndex != -1 && (resultIndex != mOldIndex)
-                            && ((Math.abs(x - mBeginX) > mItemScale * 2 * MARGIN_WIDTH)
-                            || (Math.abs(y - mBeginY) > mItemScale * 2 * MARGIN_HEIGHT))
-                            ) {
-                        beginAnimation(Math.min(mOldIndex, resultIndex)
-                                , Math.max(mOldIndex, resultIndex)
-                                , mOldIndex < resultIndex);
-                        mOldIndex = resultIndex;
-                        mOnHover = true;
+        if(isMove){
+            switch (event.getAction()) {
+                case MotionEvent.ACTION_DOWN:
+                    mBeginX = x;
+                    mBeginY = y;
+                    mTouchIndex = findChildIndex(x, y);
+                    mOldIndex = mTouchIndex;
+                    if (mTouchIndex != -1) {
+                        mTouchChildView = getChildAt(mTouchIndex);
+                        mTouchChildView.clearAnimation();
+                        //mTouchChildView.bringToFront();
                     }
-                }
 
-                break;
-            case MotionEvent.ACTION_UP:
-                setTouchIndex(x, y);
-                mOnHover = false;
-                mTouchIndex = -1;
-                mTouchChildView = null;
-                break;
+                    break;
+                case MotionEvent.ACTION_MOVE:
+                    if (mTouchIndex != -1 && mTouchChildView != null) {
+                        moveTouchView(x, y);
+                        //拖动过程中的View的index
+                        int resultIndex = findChildIndex(x, y);
+                        if (resultIndex != -1 && (resultIndex != mOldIndex)
+                                && ((Math.abs(x - mBeginX) > mItemScale * 2 * MARGIN_WIDTH)
+                                || (Math.abs(y - mBeginY) > mItemScale * 2 * MARGIN_HEIGHT))
+                                ) {
+                            beginAnimation(Math.min(mOldIndex, resultIndex)
+                                    , Math.max(mOldIndex, resultIndex)
+                                    , mOldIndex < resultIndex);
+                            mOldIndex = resultIndex;
+                            mOnHover = true;
+                        }
+                    }
+
+                    break;
+                case MotionEvent.ACTION_UP:
+                    setTouchIndex(x, y);
+                    mOnHover = false;
+                    mTouchIndex = -1;
+                    mTouchChildView = null;
+                    return  true;
+            }
         }
         return super.onTouchEvent(event);
     }
@@ -335,10 +380,11 @@ public class TabMoveLayout extends ViewGroup {
     }
 
     public void setChildView(List<String> data) {
-        setChildView(data, 0);
+        setChildView(data, ITEM_BACKGROUD_DEFAULT);
     }
 
-    public void setChildView(List<String> data, int styleId) {
+    public void setChildView(List<String> data, int bacID) {
+        ITEM_BACKGROUND = bacID;
         this.removeAllViews();
         Log.e("Count", "" + getChildCount());
         if(data == null || data.size() == 0){
@@ -346,14 +392,19 @@ public class TabMoveLayout extends ViewGroup {
         }
         mData = data;
         TextView tv = null;
+        LayoutParams params = new ViewGroup.LayoutParams((int) (mItemScale * ITEM_WIDTH),
+                (int) (mItemScale * ITEM_HEIGHT));
         for(int i = 0;i<data.size();i++){
             tv = new TextView(mContext);
             tv.setText(data.get(i));
-            tv.setBackgroundResource(R.drawable.flag_01);
-            addView(tv);
+            tv.setTextSize(TypedValue.COMPLEX_UNIT_PX,TEXT_SIZE);
+            tv.setGravity(Gravity.CENTER);
+            tv.setTag(new ViewHolder(i / ITEM_NUM, i % ITEM_NUM));
+            tv.setTextColor(TEXT_COLOR);
+            tv.setBackgroundResource(ITEM_BACKGROUND);
+            addView(tv,params);
         }
         this.postInvalidate();
-        Log.e("Count", "" + getChildCount());
     }
 
     /**
@@ -366,20 +417,48 @@ public class TabMoveLayout extends ViewGroup {
         if(mTouchChildView!= null){
             int resultIndex = findChildIndex(x, y);
             Log.e("resultindex", "" + resultIndex);
-            if(resultIndex == mTouchIndex){
-                /**
-                 * ------------------------------重要------------------------------
-                 * 移除前需要先移除View的动画效果，不然无法移除，可看源码
-                 */
-                this.removeView(mTouchChildView);
-
-                TextView tv = new TextView(mContext);
-                tv.setText(mData.get(mTouchIndex));
-                tv.setBackgroundResource(R.drawable.flag_01);
-                this.addView(tv,mTouchIndex);
+            if(resultIndex == mTouchIndex||resultIndex == -1){
+                refreshView(mTouchIndex);
             }else{
-
+                swapView(mTouchIndex, resultIndex);
             }
+        }
+    }
+
+    /**
+     *刷新View
+     * ------------------------------重要------------------------------
+     * 移除前需要先移除View的动画效果，不然无法移除，可看源码
+     */
+    private void refreshView(int index) {
+        //移除原来的View
+        getChildAt(index).clearAnimation();
+        removeViewAt(index);
+        //添加一个View
+        TextView tv = new TextView(mContext);
+        LayoutParams params = new ViewGroup.LayoutParams((int) (mItemScale * ITEM_WIDTH),
+                (int) (mItemScale * ITEM_HEIGHT));
+        tv.setText(mData.get(index));
+        tv.setTextColor(TEXT_COLOR);
+        tv.setBackgroundResource(ITEM_BACKGROUND);
+        tv.setGravity(Gravity.CENTER);
+        tv.setTextSize(TypedValue.COMPLEX_UNIT_PX,TEXT_SIZE);
+        tv.setTag(new ViewHolder(index / ITEM_NUM, index % ITEM_NUM));
+        this.addView(tv,index ,params);
+        tv.startAnimation(mSnake);
+    }
+
+    private void swapView(int fromIndex, int toIndex) {
+        if(fromIndex < toIndex){
+            mData.add(toIndex+1,mData.get(fromIndex));
+            mData.remove(fromIndex);
+        }else{
+            mData.add(toIndex,mData.get(fromIndex));
+            mData.remove(fromIndex+1);
+        }
+
+        for (int i = Math.min(fromIndex, toIndex); i <= Math.max(fromIndex, toIndex); i++) {
+            refreshView(i);
         }
     }
 
