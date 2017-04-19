@@ -1,4 +1,4 @@
-package com.study.library;
+package com.study.library.util;
 
 
 import android.content.Context;

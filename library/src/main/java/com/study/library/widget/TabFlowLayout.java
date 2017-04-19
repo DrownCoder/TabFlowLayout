@@ -1,4 +1,4 @@
-package com.study.library;
+package com.study.library.widget;
 
 import android.content.Context;
 import android.util.AttributeSet;
@@ -8,6 +8,8 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.view.animation.Animation;
 import android.view.animation.AnimationUtils;
+
+import com.study.library.R;
 
 import java.util.ArrayList;
 import java.util.List;

@@ -1,4 +1,4 @@
-package com.study.library;
+package com.study.library.widget;
 
 import android.content.Context;
 import android.content.res.TypedArray;
@@ -15,6 +15,10 @@ import android.view.animation.AnimationUtils;
 import android.view.animation.TranslateAnimation;
 import android.widget.TextView;
 
+import com.study.library.R;
+import com.study.library.adapter.TabAdapter;
+import com.study.library.util.DensityUtils;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -22,7 +26,8 @@ import java.util.List;
  * Created by Xuan on 2017/3/30.
  */
 
-public class TabMoveLayout extends ViewGroup {
+public class TabMoveLayout2 extends ViewGroup {
+    private TabAdapter mAdapter;
     private Context mContext;
     private Animation mSnake;
     //是否允许拖动
@@ -76,15 +81,15 @@ public class TabMoveLayout extends ViewGroup {
     //文字大小
     private int TEXT_SIZE;
 
-    public TabMoveLayout(Context context) {
+    public TabMoveLayout2(Context context) {
         this(context, null);
     }
 
-    public TabMoveLayout(Context context, AttributeSet attrs) {
+    public TabMoveLayout2(Context context, AttributeSet attrs) {
         this(context, attrs, 0);
     }
 
-    public TabMoveLayout(Context context, AttributeSet attrs, int defStyleAttr) {
+    public TabMoveLayout2(Context context, AttributeSet attrs, int defStyleAttr) {
         super(context, attrs, defStyleAttr);
         mContext = context;
         initAttrs(attrs);
@@ -386,13 +391,12 @@ public class TabMoveLayout extends ViewGroup {
     public void setChildView(List<String> data, int bacID) {
         ITEM_BACKGROUND = bacID;
         this.removeAllViews();
-        Log.e("Count", "" + getChildCount());
         if(data == null || data.size() == 0){
             return;
         }
         mData = data;
         TextView tv = null;
-        LayoutParams params = new ViewGroup.LayoutParams((int) (mItemScale * ITEM_WIDTH),
+        LayoutParams params = new LayoutParams((int) (mItemScale * ITEM_WIDTH),
                 (int) (mItemScale * ITEM_HEIGHT));
         for(int i = 0;i<data.size();i++){
             tv = new TextView(mContext);
@@ -405,6 +409,14 @@ public class TabMoveLayout extends ViewGroup {
             addView(tv,params);
         }
         this.postInvalidate();
+    }
+
+    private void setChildView(){
+        if(mAdapter != null){
+            for(int i = 0;i<mAdapter.getCount();i++){
+                addView(mAdapter.getView(i,null,null));
+            }
+        }
     }
 
     /**
@@ -436,7 +448,7 @@ public class TabMoveLayout extends ViewGroup {
         removeViewAt(index);
         //添加一个View
         TextView tv = new TextView(mContext);
-        LayoutParams params = new ViewGroup.LayoutParams((int) (mItemScale * ITEM_WIDTH),
+        LayoutParams params = new LayoutParams((int) (mItemScale * ITEM_WIDTH),
                 (int) (mItemScale * ITEM_HEIGHT));
         tv.setText(mData.get(index));
         tv.setTextColor(TEXT_COLOR);
@@ -460,6 +472,14 @@ public class TabMoveLayout extends ViewGroup {
         for (int i = Math.min(fromIndex, toIndex); i <= Math.max(fromIndex, toIndex); i++) {
             refreshView(i);
         }
+    }
+
+    public void setAdapter(TabAdapter adapter) {
+        if(adapter == null){
+            Log.e("AdapterError","Adapter is null");
+            return;
+        }
+        this.mAdapter = adapter;
     }
 
     class ViewHolder {
